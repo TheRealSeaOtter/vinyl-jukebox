@@ -1,0 +1,17 @@
+{
+  "name": "Vinyl Jukebox v0.3",
+  "short_name": "Jukebox",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#171713",
+  "theme_color": "#171713",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
