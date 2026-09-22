@@ -1,4 +1,4 @@
-VINYL JUKEBOX v0.3.1 — TABLET LAYOUT PASS
+VINYL JUKEBOX v0.3.2 — TABLET LAYOUT PASS
 
 Changes from v0.3:
 - Removes the large app header on coarse-pointer landscape devices (the Lenovo jukebox tablet).
@@ -10,3 +10,6 @@ Changes from v0.3:
 - Updates the service-worker cache so GitHub Pages changes refresh correctly.
 
 Prototype data and behavior remain the same as v0.3. No Google Sheet writes are performed.
+
+
+v0.3.2 tablet pass: larger Now Playing art and slide-over Up Next quick queue.
