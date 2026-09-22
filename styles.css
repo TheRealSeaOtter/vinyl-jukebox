@@ -1,1 +1,78 @@
 *{box-sizing:border-box}:root{--bg:#171713;--panel:#22221d;--panel2:#2d2c25;--ink:#f1eadb;--muted:#aaa392;--accent:#d7a85a;--line:#454237}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;height:100%;overflow:hidden}button,input,select{font:inherit}.topbar{height:92px;display:flex;align-items:center;justify-content:space-between;padding:18px 34px;border-bottom:1px solid var(--line)}h1{font-size:30px;letter-spacing:4px;margin:3px 0}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--accent);font-weight:700}.clock,.version{color:var(--muted);font-size:15px}.version{margin-left:auto;margin-right:22px}.screen{display:none;height:calc(100vh - 166px);padding:24px 34px;overflow:auto}.screen.active{display:block}#home.active{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(290px,.9fr);gap:28px}.hero{display:grid;grid-template-columns:390px 1fr;gap:34px;align-items:center}.art-wrap{position:relative;width:390px;height:390px}.album-art{position:absolute;z-index:2;width:350px;height:350px;top:20px;left:0;border-radius:4px;box-shadow:0 18px 45px #0008;background-size:cover!important;background-position:center!important;display:grid;place-items:center;text-align:center;padding:30px;font-size:30px;font-weight:800;letter-spacing:2px}.record-disc{position:absolute;width:330px;height:330px;border-radius:50%;background:repeating-radial-gradient(circle,#0e0e0d 0 3px,#171715 4px 6px);top:30px;left:60px}.record-disc:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;background:var(--accent);top:120px;left:120px}.now-playing h2{font-size:40px;margin:8px 0 2px;line-height:1.03}.artist{font-size:24px;margin:0 0 10px}.meta,.play-info{color:var(--muted);font-size:15px}.actions{display:grid;gap:10px;margin-top:26px}button,select{border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:13px 16px;border-radius:8px;font-weight:800;letter-spacing:.7px;cursor:pointer}button:active{transform:scale(.985)}button.primary{background:var(--accent);color:#171713;border-color:var(--accent)}button.danger{color:#e9aaa0}.toast{height:24px;color:var(--accent);padding-top:10px;font-size:13px}.up-next{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;overflow:auto}.section-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:800;letter-spacing:2px;margin-bottom:16px}.text-button{padding:4px 6px;border:0;background:transparent;color:var(--muted);font-size:11px}.queue-card,.list-row{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.mini-art{width:54px;height:54px;border-radius:3px;background-size:cover!important;background-position:center!important;display:grid;place-items:center;font-weight:800}.row-text{min-width:0;flex:1}.row-text strong,.row-text span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-text span{color:var(--muted);font-size:13px;margin-top:4px}.collection-tools{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;margin-bottom:10px}.search{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--ink);padding:13px 16px;border-radius:8px}.filter-summary{color:var(--accent);font-size:12px;min-height:20px;margin-bottom:8px}.collection-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}.album-card{cursor:pointer}.album-card .cover{aspect-ratio:1;border-radius:5px;background-size:cover!important;background-position:center!important;display:grid;place-items:center;text-align:center;padding:15px;font-weight:800;box-shadow:0 8px 18px #0005}.album-card strong{display:block;margin-top:8px}.album-card span{color:var(--muted);font-size:13px}.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:25px}.stat strong{display:block;font-size:36px;color:var(--accent)}.stat span{color:var(--muted)}.history{margin-top:26px}.bottom-nav{height:74px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:#131310}.nav-btn{border:0;border-radius:0;background:transparent;color:var(--muted);font-size:12px}.nav-btn.active{color:var(--accent);border-top:3px solid var(--accent)}.modal{position:fixed;inset:0;z-index:20;background:#000b;display:grid;place-items:center;padding:30px}.modal.hidden{display:none}.modal-card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;width:min(760px,92vw);max-height:88vh;overflow:auto;padding:28px}.modal-close{position:absolute;right:12px;top:10px;border:0;background:transparent;font-size:28px;padding:5px 10px}.detail{display:grid;grid-template-columns:250px 1fr;gap:26px}.detail-cover{width:250px;aspect-ratio:1;background-size:cover!important;background-position:center!important;border-radius:6px;display:grid;place-items:center;text-align:center;padding:20px;font-weight:800}.detail h2{font-size:30px;margin:8px 0}.choice-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:18px}.choice{min-height:82px;text-align:left}.choice small{display:block;color:var(--muted);margin-top:5px;font-weight:400;letter-spacing:0}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.chip{padding:9px 12px;font-size:12px}.chip.active{background:var(--accent);color:#171713}.modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}.queue-controls{display:flex;gap:6px}.queue-controls button{padding:9px 11px}.recommend-result{text-align:center}.recommend-cover{width:min(300px,60vw);aspect-ratio:1;margin:12px auto;background-size:cover!important;background-position:center!important;border-radius:6px;display:grid;place-items:center;padding:20px;font-weight:800}.match-count{color:var(--muted);font-size:13px}@media(max-width:1000px){.hero{grid-template-columns:300px 1fr}.art-wrap{width:300px;height:300px}.album-art{width:270px;height:270px}.record-disc{width:250px;height:250px}.record-disc:after{top:90px;left:90px;width:70px;height:70px}.collection-grid{grid-template-columns:repeat(4,1fr)}.collection-tools{grid-template-columns:1fr auto auto}.collection-tools #randomResultsBtn{grid-column:1/-1}.detail{grid-template-columns:200px 1fr}.detail-cover{width:200px}}
+
+/* v0.3.1 — Lenovo / coarse-pointer landscape pass.
+   Keep the desktop composition intact; reclaim vertical space on the jukebox tablet. */
+@media (pointer:coarse) and (orientation:landscape) {
+  .topbar{display:none}
+  .screen{height:calc(100vh - 74px);padding:14px 20px}
+
+  #home.active{
+    grid-template-columns:minmax(0,1fr) 220px;
+    gap:16px;
+    align-items:stretch;
+  }
+  .hero{
+    grid-template-columns:minmax(245px,42vh) minmax(0,1fr);
+    gap:22px;
+    align-items:center;
+    min-height:0;
+  }
+  .art-wrap{
+    width:min(330px,42vh);
+    height:min(330px,42vh);
+    align-self:center;
+  }
+  .album-art{
+    width:calc(100% - 28px);
+    height:calc(100% - 28px);
+    top:14px;
+    left:0;
+    padding:18px;
+    font-size:22px;
+  }
+  .record-disc{
+    width:calc(100% - 42px);
+    height:calc(100% - 42px);
+    top:21px;
+    left:42px;
+  }
+  .record-disc:after{
+    width:28%;height:28%;top:36%;left:36%;
+  }
+  .now-playing{min-width:0;align-self:center}
+  .now-playing h2{
+    font-size:clamp(25px,4.1vh,34px);
+    line-height:1.02;
+    margin:5px 0 3px;
+  }
+  .artist{font-size:clamp(17px,2.8vh,22px);margin:0 0 6px}
+  .meta,.play-info{font-size:13px;margin:5px 0}
+  .actions{gap:7px;margin-top:14px}
+  .actions button{padding:10px 12px;font-size:12px}
+  .toast{height:18px;padding-top:5px;font-size:11px}
+
+  .up-next{padding:12px;min-width:0}
+  .up-next .section-head{margin-bottom:8px}
+  .up-next .queue-card{gap:8px;padding:7px 0}
+  .up-next .mini-art{width:42px;height:42px;flex:0 0 42px}
+  .up-next .row-text strong{font-size:12px}
+  .up-next .row-text span{font-size:11px;margin-top:2px}
+
+  #collection.screen,#queue.screen,#stats.screen{padding-top:14px}
+  .collection-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+  .album-card strong{font-size:13px;margin-top:6px}
+  .album-card span{font-size:11px}
+  .collection-tools{margin-bottom:7px}
+  .section-head{margin-bottom:10px}
+}
+
+/* Extra squeeze for the M8's short landscape viewport. */
+@media (pointer:coarse) and (orientation:landscape) and (max-height:650px) {
+  .screen{padding-top:10px;padding-bottom:10px}
+  #home.active{grid-template-columns:minmax(0,1fr) 205px;gap:14px}
+  .hero{grid-template-columns:minmax(220px,44vh) minmax(0,1fr);gap:18px}
+  .art-wrap{width:min(290px,44vh);height:min(290px,44vh)}
+  .now-playing h2{font-size:clamp(23px,4.6vh,31px)}
+  .actions{margin-top:10px}
+  .actions button{padding:8px 10px}
+}
