@@ -79,3 +79,19 @@
   .actions{margin-top:10px}
   .actions button{padding:8px 10px}
 }
+
+/* v0.4 desktop repair: tablet keeps its v0.3.2 composition; desktop gets a deliberate Now Playing layout. */
+@media (pointer:fine) and (min-width:1000px) {
+  #home.active{display:block}
+  #home .hero{
+    min-height:calc(100vh - 190px);display:grid;
+    grid-template-columns:minmax(360px,500px) minmax(360px,620px);
+    gap:56px;align-items:center;justify-content:center;max-width:1180px;margin:0 auto
+  }
+  #home .art-wrap{width:min(31vw,460px);height:min(31vw,460px);justify-self:end}
+  #home .now-playing{max-width:620px;align-self:center;padding-right:36px}
+  #home .now-playing h2{font-size:clamp(34px,4vw,58px);line-height:.98}
+  #home .artist{font-size:clamp(22px,2vw,30px)}
+  #home .actions{max-width:560px}
+  .queue-drawer-toggle{top:54%}
+}
