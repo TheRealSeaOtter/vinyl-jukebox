@@ -2,7 +2,7 @@
 // records-data.js remains an offline snapshot; a connected Apps Script endpoint replaces it at launch.
 
 const API_KEY="vj-api-url";
-let API_URL=localStorage.getItem(API_KEY)||"";
+let API_URL=localStorage.getItem(API_KEY)||"https://script.google.com/macros/s/AKfycbwB3Vox-LS4lC1gWiQT9qlr0X8MsizDw04IRL0KZ-OfYzTAmB0WcN9MgeLTRmnrLJlG9Q/exec";
 let state=JSON.parse(localStorage.getItem("vj-state-v03")||"null")||{selected:records[0].id,queue:[],plays:[],art:{},filters:{genre:"",style:"",decade:"",folder:""}};
 if(state.artProvider!=="discogs-backend-v1"){
   state.art={};
