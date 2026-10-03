@@ -1,8 +1,11 @@
-// v0.5. Live Shelf Library + Discogs-first artwork backend.
+// v0.5.2. Live Shelf Library + Discogs-first artwork backend.
 // records-data.js remains an offline snapshot; a connected Apps Script endpoint replaces it at launch.
 
 const API_KEY="vj-api-url";
-let API_URL=localStorage.getItem(API_KEY)||"https://script.google.com/macros/s/AKfycbwB3Vox-LS4lC1gWiQT9qlr0X8MsizDw04IRL0KZ-OfYzTAmB0WcN9MgeLTRmnrLJlG9Q/exec";
+const DEFAULT_API_URL="https://script.google.com/macros/s/AKfycbwB3Vox-LS4lC1gWiQT9qlr0X8MsizDw04IRL0KZ-OfYzTAmB0WcN9MgeLTRmnrLJlG9Q/exec";
+// Always use the known-good deployed endpoint unless the user has explicitly saved another /exec URL.
+const savedApi=(localStorage.getItem(API_KEY)||"").trim();
+let API_URL=/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec(?:\?.*)?$/.test(savedApi)?savedApi:DEFAULT_API_URL;
 let state=JSON.parse(localStorage.getItem("vj-state-v03")||"null")||{selected:records[0].id,queue:[],plays:[],art:{},filters:{genre:"",style:"",decade:"",folder:""}};
 if(state.artProvider!=="discogs-backend-v1"){
   state.art={};
@@ -37,8 +40,8 @@ function jsonp(params,timeout=20000){
     document.head.appendChild(script);
   })
 }
-function apiStatus(text,kind=""){
-  const el=$("dataStatus");if(!el)return;el.textContent=text;el.dataset.kind=kind;
+function apiStatus(text,kind="",detail=""){
+  const el=$("dataStatus");if(!el)return;el.textContent=text;el.dataset.kind=kind;el.title=detail||text;
 }
 async function syncCollection(silent=false){
   if(!API_URL){apiStatus("OFFLINE SNAPSHOT","offline");return false}
@@ -47,7 +50,7 @@ async function syncCollection(silent=false){
     const data=await jsonp({action:"collection"},30000);
     if(!data?.ok||!Array.isArray(data.records)||!data.records.length)throw new Error(data?.error||"No records returned");
     records=data.records;reconcileState();renderAll();apiStatus(`LIVE • ${records.length} RECORDS`,"live");return true;
-  }catch(e){console.warn(e);apiStatus("SNAPSHOT • LIVE SYNC FAILED","offline");return false}
+  }catch(e){console.error("Vinyl Jukebox live sync failed:",e);apiStatus("SNAPSHOT • SYNC FAILED","offline",String(e&&e.message||e));return false}
 }
 function openConnection(){
   modal(`<div class="eyebrow">LIVE DATA</div><h2>Connect the jukebox</h2><p class="meta">Paste the Google Apps Script Web App URL ending in <b>/exec</b>. It is stored only on this device.</p><input id="apiUrlInput" class="search" style="width:100%" placeholder="https://script.google.com/macros/s/.../exec" value="${API_URL.replace(/"/g,'&quot;')}"><div class="modal-actions"><button class="primary" id="saveApi">SAVE & SYNC</button>${API_URL?'<button id="forgetApi">DISCONNECT</button>':''}</div>`);
@@ -107,4 +110,16 @@ function chooseVibe(){modal(`<div class="eyebrow">VIBE</div><h2>Choose a vibe</h
 function chooseDepth(base=records,label="Whole collection"){if(!Array.isArray(base))base=records;modal(`<div class="eyebrow">DIG DEEPER</div><h2>Refine the pick</h2><p class="match-count">Starting pool: ${base.length} records • ${label}</p><div class="choice-grid"><button class="choice" data-depth="any">ANYTHING<small>No play-history filter.</small></button><button class="choice" data-depth="lately">HAVEN'T PLAYED LATELY<small>Oldest or never-played records.</small></button><button class="choice" data-depth="never">NEVER PLAYED<small>Only records with zero logged plays.</small></button><button class="choice" data-depth="favorite">OLD FAVORITE<small>Rated 4–5 stars and previously played.</small></button></div>`);document.querySelectorAll("[data-depth]").forEach(b=>b.onclick=()=>{let pool=depthPool(base,b.dataset.depth);showRecommendation(pool.length?pool:base,`${label} • ${b.textContent.trim()}`)})}
 function depthPool(base,d){if(d==="never")return base.filter(r=>!playCount(r.id));if(d==="favorite")return base.filter(r=>r.rating>=4&&playCount(r.id));if(d==="lately"){let last={};state.plays.forEach(p=>{if(!last[p.id])last[p.id]=new Date(p.at).getTime()});let played=base.filter(r=>last[r.id]).sort((a,b)=>last[a.id]-last[b.id]);let never=base.filter(r=>!last[r.id]);return never.concat(played.slice(0,Math.max(1,Math.ceil(played.length/2))))}return base}
 function showRecommendation(pool,label,isPureRandom=false){if(!pool.length)return;let r=securePick(pool);resolveArt(r);modal(`<div class="recommend-result"><div class="eyebrow">${isPureRandom?"🎲 RANDOM DRAW":"RECOMMENDATION"}</div><div class="recommend-cover" style="background:${artStyle(r)}">${state.art[r.id]?"":r.title}</div><h2>${r.title}</h2><p class="artist">${r.artist}</p><p class="match-count">${label} • ${pool.length} eligible record${pool.length===1?"":"s"}${isPureRandom?` • draw #${pool.indexOf(r)+1} of ${pool.length}`:""}</p><div class="modal-actions" style="justify-content:center"><button class="primary" id="recPlay">PLAY NOW</button><button id="recQueue">ADD TO QUEUE</button><button id="reroll">NAH, TRY AGAIN</button></div></div>`);$("recPlay").onclick=()=>{closeModal();select(r.id)};$("recQueue").onclick=()=>addQueue(r.id);$("reroll").onclick=()=>showRecommendation(pool,label,isPureRandom)}
-function renderAll(loadArt=true){renderHome();renderCollection();renderQueue();renderStats();if(loadArt)resolveVisibleArt()}function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.screen===id))}document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>show(b.dataset.screen));function tick(){$("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}setInterval(tick,1000);tick();$("dataStatus").onclick=openConnection;$("syncBtn").onclick=()=>syncCollection();renderAll();apiStatus(API_URL?"CONNECTING…":"OFFLINE SNAPSHOT",API_URL?"sync":"offline");if(API_URL)syncCollection(true);if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js");
+function renderAll(loadArt=true){renderHome();renderCollection();renderQueue();renderStats();if(loadArt)resolveVisibleArt()}function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===id));document.querySelectorAll(".nav-btn").forEach(b=>b.classList.toggle("active",b.dataset.screen===id))}document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>show(b.dataset.screen));function tick(){$("clock").textContent=new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}
+async function boot(){
+  setInterval(tick,1000);tick();
+  $("dataStatus").onclick=openConnection;$("syncBtn").onclick=()=>syncCollection();
+  renderAll();
+  apiStatus("CONNECTING…","sync","Attempting live Shelf Library sync");
+  console.info("Vinyl Jukebox v0.5.2 boot; live API:",API_URL);
+  await syncCollection(true);
+  if("serviceWorker" in navigator&&location.protocol.startsWith("http")){
+    try{await navigator.serviceWorker.register("sw.js");}catch(e){console.warn("Service worker registration failed",e)}
+  }
+}
+boot();

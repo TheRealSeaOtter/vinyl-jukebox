@@ -1,3 +1,7 @@
+VINYL JUKEBOX v0.5.2
+
+Live-connection repair build. Uses the deployed Apps Script /exec endpoint automatically and falls back to the bundled snapshot only after an actual failed sync.
+
 VINYL JUKEBOX v0.5 — LIVE DATA + DISCOGS ARTWORK
 
 WHAT CHANGED
