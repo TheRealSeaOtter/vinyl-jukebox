@@ -95,3 +95,6 @@
   #home .actions{max-width:560px}
   .queue-drawer-toggle{top:54%}
 }
+/* v0.5 live-data controls */
+.data-status,.sync-button{font:inherit;font-size:.7rem;letter-spacing:.08em}.data-status{border:1px solid rgba(255,255,255,.16);padding:.45rem .65rem;border-radius:999px}.data-status[data-kind="live"]{opacity:1}.data-status[data-kind="offline"]{opacity:.62}.sync-button{padding:.42rem .65rem}
+@media (pointer:coarse) and (orientation:landscape){.topbar .data-status,.topbar .sync-button{display:none}}

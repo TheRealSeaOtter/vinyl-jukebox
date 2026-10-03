@@ -1,43 +1,31 @@
-VINYL JUKEBOX v0.4 — TABLET LAYOUT PASS
+VINYL JUKEBOX v0.5 — LIVE DATA + DISCOGS ARTWORK
 
-Changes from v0.3:
-- Removes the large app header on coarse-pointer landscape devices (the Lenovo jukebox tablet).
-- Reclaims vertical space on Home, Collection, Queue, and Stats.
-- Raises/enlarges the Home artwork area and tightens selected-record typography.
-- Demotes Up Next to a narrower, denser sidebar.
-- Keeps bottom navigation and Pick Something behavior intact.
-- Leaves the desktop layout intact.
-- Updates the service-worker cache so GitHub Pages changes refresh correctly.
+WHAT CHANGED
+- Shelf Library can now load live from the authoritative Google Sheet.
+- Discogs exact Release ID is the primary artwork source.
+- MusicBrainz + Cover Art Archive is fallback only.
+- Discogs token stays server-side in Google Apps Script; it is never exposed in GitHub Pages.
+- Resolved Discogs artwork is persistently cached by Release ID in Script Properties.
+- Bundled records-data.js remains as an offline fallback.
 
-Prototype data and behavior remain the same as v0.3. No Google Sheet writes are performed.
+ONE-TIME BACKEND SETUP
+1. Open the Record Collection Database Google Sheet.
+2. Extensions > Apps Script.
+3. Replace the editor contents with Code.gs from this package, then Save.
+4. In Apps Script: Project Settings > Script Properties > Add script property.
+   Property: DISCOGS_TOKEN
+   Value: your Discogs personal access token
+   Save. Do NOT put the token in GitHub.
+5. Deploy > New deployment > Select type: Web app.
+   Execute as: Me
+   Who has access: Anyone
+   Deploy and authorize when Google asks.
+6. Copy the Web app URL ending in /exec.
 
+CONNECT THE LENOVO
+1. Upload the normal web files to GitHub Pages. Code.gs does NOT need to be hosted by GitHub; it is just included here for setup.
+2. Open the jukebox. On desktop, click the LIVE/OFFLINE status pill. On the Lenovo, open the app once on desktop OR temporarily use the browser desktop layout; paste the /exec URL in the connection dialog.
+3. Tap SAVE & SYNC.
 
-v0.4 tablet pass: larger Now Playing art and slide-over Up Next quick queue.
-
-
-v0.4 REAL COLLECTION
-- 547 Shelf Library rows embedded from the authoritative Google Sheet snapshot exported 2026-10-02.
-- Discogs Instance ID is the copy-level key.
-- Real artist/title/year/label/format/folder/rating/genre/sub-genre metadata powers search, filters and random picks.
-- Existing local queue/play history is preserved when IDs still exist.
-- Artwork is resolved lazily to avoid hammering the remote artwork service.
-- Sheet remains read-only; this build is a current snapshot, not live sync yet.
-
-
-v0.4.1 ARTWORK RELIABILITY
-- Clears only previously cached blank artwork failures; successful cached covers are preserved.
-- Failed lookups are retryable instead of becoming permanent blanks.
-- Uses two-stage album searches with normalized title/artist matching and a confidence score.
-- No longer blindly accepts the first search result.
-- Requests larger artwork and throttles remote searches with a two-worker queue.
-- Discogs Release IDs remain in the data for a future authenticated exact-release artwork backend.
-
-
-v0.4.2 MUSICBRAINZ + COVER ART ARCHIVE
-- Removes Apple/iTunes artwork lookup completely.
-- Clears all prior Apple-derived artwork mappings once on upgrade so incorrect covers do not persist.
-- Searches MusicBrainz releases using title + artist + catalog number when available.
-- Scores candidates against title, artist, year, catalog number and label; low-confidence matches remain placeholders.
-- Uses Cover Art Archive exact-release front art first, then the matched release-group front cover.
-- Uses one paced MusicBrainz worker to respect public API usage limits.
-- Successful artwork remains cached locally on the jukebox device.
+NOTE
+The Apps Script URL is stored in localStorage per device. The Discogs token is stored only in Apps Script Script Properties.
