@@ -22,3 +22,12 @@ v0.4 REAL COLLECTION
 - Existing local queue/play history is preserved when IDs still exist.
 - Artwork is resolved lazily to avoid hammering the remote artwork service.
 - Sheet remains read-only; this build is a current snapshot, not live sync yet.
+
+
+v0.4.1 ARTWORK RELIABILITY
+- Clears only previously cached blank artwork failures; successful cached covers are preserved.
+- Failed lookups are retryable instead of becoming permanent blanks.
+- Uses two-stage album searches with normalized title/artist matching and a confidence score.
+- No longer blindly accepts the first search result.
+- Requests larger artwork and throttles remote searches with a two-worker queue.
+- Discogs Release IDs remain in the data for a future authenticated exact-release artwork backend.

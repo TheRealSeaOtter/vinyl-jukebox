@@ -2,6 +2,9 @@
 // Collection data is loaded from records-data.js.
 
 let state=JSON.parse(localStorage.getItem("vj-state-v03")||"null")||{selected:records[0].id,queue:[],plays:[],art:{},filters:{genre:"",style:"",decade:"",folder:""}};
+// v0.4.1 artwork cache migration: preserve successful covers, discard poisoned blank failures.
+state.art=Object.fromEntries(Object.entries(state.art||{}).filter(([,url])=>typeof url==="string"&&url.startsWith("http")));
+state.artMisses={};
 // Keep existing queue/play history from v0.3, but discard IDs no longer present.
 const recordIds=new Set(records.map(r=>r.id));
 if(!recordIds.has(state.selected))state.selected=records[0].id;
@@ -11,7 +14,41 @@ const $=id=>document.getElementById(id), rec=id=>records.find(r=>r.id===id), sav
 function toast(s){$("toast").textContent=s;setTimeout(()=>$("toast").textContent="",2200)}
 function artStyle(r){return state.art[r.id]?`url('${state.art[r.id]}')`:`linear-gradient(145deg,${r.color},#171713)`}
 function art(el,r){el.style.background=artStyle(r);el.textContent=state.art[r.id]?"":r.title}
-async function resolveArt(r){if(state.art[r.id]!==undefined)return;try{let q=encodeURIComponent(`${r.artist} ${r.title}`);let res=await fetch(`https://itunes.apple.com/search?term=${q}&entity=album&limit=8`);let j=await res.json();let hit=j.results.find(x=>x.collectionName?.toLowerCase()===r.title.toLowerCase())||j.results[0];state.art[r.id]=hit?.artworkUrl100?.replace("100x100bb","600x600bb")||""}catch(e){state.art[r.id]=""}save();renderAll(false)}
+const artQueue=[];let artWorkers=0;const MAX_ART_WORKERS=2;
+function norm(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[’‘]/g,"'").replace(/&/g," and ").replace(/\b(the|a|an)\b/g," ").replace(/[^a-z0-9]+/g," ").trim()}
+function titleCore(s){return norm(s).replace(/\b(deluxe|edition|anniversary|remaster(?:ed)?|reissue|mono|stereo|original soundtrack|soundtrack|expanded|bonus|version)\b/g," ").replace(/\s+/g," ").trim()}
+function artistTokens(s){return new Set(norm(s).split(" ").filter(x=>x.length>1))}
+function artScore(r,x){
+  const rt=norm(r.title), rc=titleCore(r.title), xt=norm(x.collectionName), xc=titleCore(x.collectionName);
+  const ra=artistTokens(r.artist), xa=artistTokens(x.artistName);
+  let shared=0;ra.forEach(t=>{if(xa.has(t))shared++});
+  let score=0;if(rt&&rt===xt)score+=70;else if(rc&&rc===xc)score+=58;else if(rc&&xc&&(rc.includes(xc)||xc.includes(rc)))score+=34;
+  if(ra.size&&shared===ra.size)score+=28;else if(shared)score+=Math.min(22,shared*8);
+  const y=Number(r.year), cy=Number(x.releaseDate?.slice(0,4));if(y&&cy&&Math.abs(y-cy)<=1)score+=8;
+  return score
+}
+function hiResArt(url){return String(url||"").replace(/\d+x\d+bb(?:-\d+)?/i,"700x700bb").replace(/100x100(?:-\d+)?/i,"700x700")}
+async function appleSearch(term,limit=25){let res=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=album&attribute=albumTerm&limit=${limit}&country=US`);if(!res.ok)throw new Error(`art ${res.status}`);return (await res.json()).results||[]}
+async function findArtwork(r){
+  let candidates=[];
+  for(const q of [`${r.title} ${r.artist}`,r.title]){
+    try{candidates.push(...await appleSearch(q));}catch(e){}
+    let best=candidates.map(x=>[artScore(r,x),x]).sort((a,b)=>b[0]-a[0])[0];
+    if(best&&best[0]>=72)return hiResArt(best[1].artworkUrl100);
+  }
+  let best=candidates.map(x=>[artScore(r,x),x]).sort((a,b)=>b[0]-a[0])[0];
+  return best&&best[0]>=58?hiResArt(best[1].artworkUrl100):null
+}
+function resolveArt(r){
+  if(!r||state.art[r.id]||state.artMisses[r.id])return;
+  state.artMisses[r.id]=true;artQueue.push(r);pumpArtQueue()
+}
+function pumpArtQueue(){
+  while(artWorkers<MAX_ART_WORKERS&&artQueue.length){
+    const r=artQueue.shift();artWorkers++;
+    findArtwork(r).then(url=>{if(url){state.art[r.id]=url;save();renderAll(false)}}).finally(()=>{delete state.artMisses[r.id];artWorkers--;setTimeout(pumpArtQueue,900)})
+  }
+}
 function resolveVisibleArt(){
   // Avoid hundreds of simultaneous artwork requests. Resolve the selected record
   // plus the first visible collection batch; detail/recommendation views resolve on demand.
