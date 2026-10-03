@@ -1,9 +1,14 @@
-// v0.3 prototype. Field names mirror the live Shelf Library sheet.
+// v0.4.2. Field names mirror the live Shelf Library sheet.
 // Collection data is loaded from records-data.js.
 
 let state=JSON.parse(localStorage.getItem("vj-state-v03")||"null")||{selected:records[0].id,queue:[],plays:[],art:{},filters:{genre:"",style:"",decade:"",folder:""}};
-// v0.4.1 artwork cache migration: preserve successful covers, discard poisoned blank failures.
-state.art=Object.fromEntries(Object.entries(state.art||{}).filter(([,url])=>typeof url==="string"&&url.startsWith("http")));
+// v0.4.2 artwork migration: Apple/iTunes is no longer an artwork source.
+// Clear prior provider mappings once so incorrect Apple matches cannot survive the upgrade.
+if(state.artProvider!=="musicbrainz-caa-v1"){
+  state.art={};
+  state.artProvider="musicbrainz-caa-v1";
+}
+state.art=state.art||{};
 state.artMisses={};
 // Keep existing queue/play history from v0.3, but discard IDs no longer present.
 const recordIds=new Set(records.map(r=>r.id));
@@ -11,33 +16,67 @@ if(!recordIds.has(state.selected))state.selected=records[0].id;
 state.queue=(state.queue||[]).filter(id=>recordIds.has(id));
 state.plays=(state.plays||[]).filter(p=>recordIds.has(p.id));
 const $=id=>document.getElementById(id), rec=id=>records.find(r=>r.id===id), save=()=>localStorage.setItem("vj-state-v03",JSON.stringify(state));
+save();
 function toast(s){$("toast").textContent=s;setTimeout(()=>$("toast").textContent="",2200)}
 function artStyle(r){return state.art[r.id]?`url('${state.art[r.id]}')`:`linear-gradient(145deg,${r.color},#171713)`}
 function art(el,r){el.style.background=artStyle(r);el.textContent=state.art[r.id]?"":r.title}
-const artQueue=[];let artWorkers=0;const MAX_ART_WORKERS=2;
-function norm(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[’‘]/g,"'").replace(/&/g," and ").replace(/\b(the|a|an)\b/g," ").replace(/[^a-z0-9]+/g," ").trim()}
-function titleCore(s){return norm(s).replace(/\b(deluxe|edition|anniversary|remaster(?:ed)?|reissue|mono|stereo|original soundtrack|soundtrack|expanded|bonus|version)\b/g," ").replace(/\s+/g," ").trim()}
-function artistTokens(s){return new Set(norm(s).split(" ").filter(x=>x.length>1))}
-function artScore(r,x){
-  const rt=norm(r.title), rc=titleCore(r.title), xt=norm(x.collectionName), xc=titleCore(x.collectionName);
-  const ra=artistTokens(r.artist), xa=artistTokens(x.artistName);
-  let shared=0;ra.forEach(t=>{if(xa.has(t))shared++});
-  let score=0;if(rt&&rt===xt)score+=70;else if(rc&&rc===xc)score+=58;else if(rc&&xc&&(rc.includes(xc)||xc.includes(rc)))score+=34;
-  if(ra.size&&shared===ra.size)score+=28;else if(shared)score+=Math.min(22,shared*8);
-  const y=Number(r.year), cy=Number(x.releaseDate?.slice(0,4));if(y&&cy&&Math.abs(y-cy)<=1)score+=8;
+
+// MusicBrainz asks API clients to stay at roughly one request/second. Keep a single,
+// deliberately paced worker; Cover Art Archive requests happen only after a confident match.
+const artQueue=[];let artWorkers=0;const MAX_ART_WORKERS=1;
+function norm(s){return String(s||"").toLowerCase().normalize("NFKD").replace(/[’‘]/g,"'").replace(/&/g," and ").replace(/[^a-z0-9]+/g," ").trim()}
+function coreTitle(s){return norm(s).replace(/\b(deluxe|edition|anniversary|remaster(?:ed)?|reissue|mono|stereo|expanded|bonus|version)\b/g," ").replace(/\s+/g," ").trim()}
+function tokens(s){return new Set(norm(s).split(" ").filter(x=>x.length>1&&!['the','a','an'].includes(x)))}
+function overlap(a,b){const A=tokens(a),B=tokens(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(x=>B.has(x)&&n++);return n/Math.max(A.size,B.size)}
+function escLucene(s){return String(s||"").replace(/([+\-&|!(){}\[\]^"~*?:\\/])/g,"\\$1")}
+function mbArtist(x){return (x['artist-credit']||[]).map(a=>a.name||a.artist?.name||'').join(' ')}
+function mbYear(x){return Number(String(x.date||x['first-release-date']||'').slice(0,4))||0}
+function mbScore(r,x){
+  const rt=norm(r.title), xt=norm(x.title), rc=coreTitle(r.title), xc=coreTitle(x.title);
+  let score=0;
+  if(rt&&rt===xt)score+=48; else if(rc&&rc===xc)score+=42; else score+=Math.round(24*overlap(rc,xc));
+  score+=Math.round(34*overlap(r.artist,mbArtist(x)));
+  const y=Number(r.year), my=mbYear(x); if(y&&my){const d=Math.abs(y-my);if(d===0)score+=10;else if(d<=1)score+=7;else if(d<=3)score+=3;}
+  const cat=norm(r.catalog), labels=(x['label-info']||[]).map(z=>`${z['catalog-number']||''} ${z.label?.name||''}`).join(' ');
+  if(cat&&norm(labels).includes(cat))score+=18;
+  if(r.label&&labels&&overlap(r.label,labels)>.5)score+=6;
+  score+=Math.min(8,Math.round((Number(x.score)||0)/13));
   return score
 }
-function hiResArt(url){return String(url||"").replace(/\d+x\d+bb(?:-\d+)?/i,"700x700bb").replace(/100x100(?:-\d+)?/i,"700x700")}
-async function appleSearch(term,limit=25){let res=await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=album&attribute=albumTerm&limit=${limit}&country=US`);if(!res.ok)throw new Error(`art ${res.status}`);return (await res.json()).results||[]}
-async function findArtwork(r){
-  let candidates=[];
-  for(const q of [`${r.title} ${r.artist}`,r.title]){
-    try{candidates.push(...await appleSearch(q));}catch(e){}
-    let best=candidates.map(x=>[artScore(r,x),x]).sort((a,b)=>b[0]-a[0])[0];
-    if(best&&best[0]>=72)return hiResArt(best[1].artworkUrl100);
+async function mbSearch(r){
+  const parts=[`release:\"${escLucene(r.title)}\"`,`artist:\"${escLucene(r.artist)}\"`];
+  if(r.catalog)parts.push(`catno:\"${escLucene(r.catalog)}\"`);
+  let url=`https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(parts.join(' AND '))}&fmt=json&limit=10`;
+  let res=await fetch(url,{headers:{Accept:'application/json'}});
+  if(!res.ok)throw new Error(`MusicBrainz ${res.status}`);
+  let rows=(await res.json()).releases||[];
+  // Catalog numbers are powerful but not universally present in MusicBrainz. Retry without
+  // catno when the exact-release query is empty, while retaining strict local confidence checks.
+  if(!rows.length&&r.catalog){
+    const q=`release:\"${escLucene(r.title)}\" AND artist:\"${escLucene(r.artist)}\"`;
+    res=await fetch(`https://musicbrainz.org/ws/2/release/?query=${encodeURIComponent(q)}&fmt=json&limit=15`,{headers:{Accept:'application/json'}});
+    if(res.ok)rows=(await res.json()).releases||[];
   }
-  let best=candidates.map(x=>[artScore(r,x),x]).sort((a,b)=>b[0]-a[0])[0];
-  return best&&best[0]>=58?hiResArt(best[1].artworkUrl100):null
+  return rows
+}
+async function caaFront(kind,id){
+  if(!id)return null;
+  const endpoint=`https://coverartarchive.org/${kind}/${id}`;
+  try{
+    const res=await fetch(endpoint,{headers:{Accept:'application/json'}});if(!res.ok)return null;
+    const data=await res.json();const img=(data.images||[]).find(x=>x.front)||data.images?.[0];
+    return img?.thumbnails?.['500']||img?.thumbnails?.['1200']||img?.image||null;
+  }catch(e){return null}
+}
+async function findArtwork(r){
+  let rows=[];try{rows=await mbSearch(r)}catch(e){return null}
+  const ranked=rows.map(x=>[mbScore(r,x),x]).sort((a,b)=>b[0]-a[0]);
+  const best=ranked[0];
+  // Require strong title+artist agreement. A blank tile is preferable to a wrong cover.
+  if(!best||best[0]<76||overlap(r.artist,mbArtist(best[1]))<0.55||overlap(coreTitle(r.title),coreTitle(best[1].title))<0.72)return null;
+  const release=best[1];
+  let url=await caaFront('release',release.id);if(url)return url;
+  return await caaFront('release-group',release['release-group']?.id)
 }
 function resolveArt(r){
   if(!r||state.art[r.id]||state.artMisses[r.id])return;
@@ -46,13 +85,11 @@ function resolveArt(r){
 function pumpArtQueue(){
   while(artWorkers<MAX_ART_WORKERS&&artQueue.length){
     const r=artQueue.shift();artWorkers++;
-    findArtwork(r).then(url=>{if(url){state.art[r.id]=url;save();renderAll(false)}}).finally(()=>{delete state.artMisses[r.id];artWorkers--;setTimeout(pumpArtQueue,900)})
+    findArtwork(r).then(url=>{if(url){state.art[r.id]=url;save();renderAll(false)}}).finally(()=>{delete state.artMisses[r.id];artWorkers--;setTimeout(pumpArtQueue,1150)})
   }
 }
 function resolveVisibleArt(){
-  // Avoid hundreds of simultaneous artwork requests. Resolve the selected record
-  // plus the first visible collection batch; detail/recommendation views resolve on demand.
-  const selected=rec(state.selected); if(selected)resolveArt(selected);
+  const selected=rec(state.selected);if(selected)resolveArt(selected);
   filteredRecords().slice(0,48).forEach(resolveArt)
 }
 function playCount(id){return state.plays.filter(p=>p.id===id).length}

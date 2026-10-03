@@ -31,3 +31,13 @@ v0.4.1 ARTWORK RELIABILITY
 - No longer blindly accepts the first search result.
 - Requests larger artwork and throttles remote searches with a two-worker queue.
 - Discogs Release IDs remain in the data for a future authenticated exact-release artwork backend.
+
+
+v0.4.2 MUSICBRAINZ + COVER ART ARCHIVE
+- Removes Apple/iTunes artwork lookup completely.
+- Clears all prior Apple-derived artwork mappings once on upgrade so incorrect covers do not persist.
+- Searches MusicBrainz releases using title + artist + catalog number when available.
+- Scores candidates against title, artist, year, catalog number and label; low-confidence matches remain placeholders.
+- Uses Cover Art Archive exact-release front art first, then the matched release-group front cover.
+- Uses one paced MusicBrainz worker to respect public API usage limits.
+- Successful artwork remains cached locally on the jukebox device.
